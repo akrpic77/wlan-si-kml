@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="//openlayers.org/dev/theme/default/style.css" type="text/css">
+    <link rel="stylesheet" href="//openlayers.org/dev/examples/style.css" type="text/css">
+
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 80%;
+            border: 1px solid black;
+        }
+        .olPopup p { margin:0px; font-size: .9em;}
+        .olPopup h2 { font-size:1.2em; }
+    </style>
+    <script src="//openlayers.org/dev/OpenLayers.js"></script>
+    <script type="text/javascript">
+        var lon = 5;
+        var lat = 40;
+        var zoom = 5;
+        var map, select;
+
+        function init(){
+           var options = {
+                projection: new OpenLayers.Projection("EPSG:900913"),
+                displayProjection: new OpenLayers.Projection("EPSG:4326")
+            };
+            map = new OpenLayers.Map('map', options);
+            var wms = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
+
+            var style = new OpenLayers.Style({
+                pointRadius: "${radius}",
+                fillColor: "#ffcc66",
+                fillOpacity: 0.8,
+                strokeColor: "#cc6633",
+                strokeWidth: 2,
+                strokeOpacity: 0.8
+            }, {
+                context: {
+                    radius: function(feature) {
+                        return Math.min(feature.attributes.count, 7) + 3;
+                    }
+                }
+            });
+
+            var sundials = new OpenLayers.Layer.Vector("KML", {
+                projection: map.displayProjection,
+                strategies: [new OpenLayers.Strategy.Fixed(),
+                             new OpenLayers.Strategy.Refresh({interval: 30000, force: true})],
+                protocol: new OpenLayers.Protocol.HTTP({
+                    url: "/generated-nodes.kml",
+                    format: new OpenLayers.Format.KML({
+                        extractStyles: true,
+                        extractAttributes: true
+                    })
+                }),
+                styleMap: new OpenLayers.StyleMap({
+                    "default": style,
+                    "select": {
+                        fillColor: "#8aeeef",
+                        strokeColor: "#32a8a9"
+                    }
+                })
+            });
+            
+            map.addLayers([wms, sundials]);
+            
+            select = new OpenLayers.Control.SelectFeature(sundials);
+            
+            sundials.events.on({
+                "featureselected": onFeatureSelect,
+                "featureunselected": onFeatureUnselect
+            });
+
+            map.addControl(select);
+            map.setCenter(new OpenLayers.LonLat(14.96, 46.17).transform(new
+                        OpenLayers.Projection("EPSG:4326"),
+                        map.getProjectionObject()), 8);
+            select.activate();   
+        }
+        function onPopupClose(evt) {
+            select.unselectAll();
+        }
+        function onFeatureSelect(event) {
+            var feature = event.feature;
+            // Since KML is user-generated, do naive protection against
+            // Javascript.
+            var content = "<h2>"+feature.attributes.name + "</h2>" + feature.attributes.description;
+            if (content.search("<script") != -1) {
+                content = "Content contained Javascript! Escaped content below.<br>" + content.replace(/</g, "&lt;");
+            }
+            popup = new OpenLayers.Popup.FramedCloud("chicken", 
+                                     feature.geometry.getBounds().getCenterLonLat(),
+                                     new OpenLayers.Size(100,100),
+                                     content,
+                                     null, true, onPopupClose);
+            feature.popup = popup;
+            map.addPopup(popup);
+        }
+        function onFeatureUnselect(event) {
+            var feature = event.feature;
+            if(feature.popup) {
+                map.removePopup(feature.popup);
+                feature.popup.destroy();
+                delete feature.popup;
+            }
+        }
+    </script>
+  </head>
+  <body onload="init()">
+      <h1 id="title">wlan slovenija</h1>
+
+      <div id="tags">
+          kml, popup, feature
+      </div>
+
+      <p id="shortdesc">
+         Nodes and links in wlan slovenija network. 
+    </p>
+
+    <div id="map" class="smallmap"></div>
+
+    <div id="docs"></div>
+  </body>
+</html>
+
