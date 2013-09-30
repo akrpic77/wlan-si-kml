@@ -45,14 +45,16 @@
             }, {
                 context: {
                     radius: function(feature) {
-                        return Math.min(feature.attributes.count, 7) + 3;
+                        return Math.min(feature.attributes.count, 20) + 3;
                     }
                 }
             });
 
+            var clust_strategy = new OpenLayers.Strategy.Cluster();
+            clust_strategy.threshold = 5;
             var sundials = new OpenLayers.Layer.Vector("KML", {
                 projection: map.displayProjection,
-                strategies: [new OpenLayers.Strategy.Fixed(),
+                strategies: [new OpenLayers.Strategy.Fixed(), clust_strategy,
                              new OpenLayers.Strategy.Refresh({interval: 30000, force: true})],
                 protocol: new OpenLayers.Protocol.HTTP({
                     url: "/generated-nodes.kml",
