@@ -5,18 +5,20 @@ import requests
 import StringIO
 
 
-r = requests.get("https://nodes.wlan-si.net/network/map/#lat=46.17&long=14.96&zoom=8&type=m&project=1,3,6,7,8,9,10,11,13,15,18,19,20,21,23,24&status=up,visible,down,duped,new,pending",
-          verify=False)
+r = requests.get("https://nodes.wlan-si.net/network/map/#lat=46.17&long=14.96&zoom=8&type=m&project=1,3,6,7,8,9,10,11,13,15,18,19,20,21,23,24&status=up,visible,down,duped,new,pending", verify=False)
 data = r.text
+#open("nodes.wlan-si.net-map.html", 'w').write(data.encode('ascii', 'replace'))
 #data = open("nodes.wlan-si.net-map.html").read()
-
 parser = re.compile("var nodes = (.*?);", re.MULTILINE | re.DOTALL)
 parsed = parser.search(data).groups()[0]
+parsed = parsed.rstrip(' \n],') + ']'
 nodes = json.loads(parsed.replace("'", '"'))
 
 parser = re.compile("var links = (.*?);", re.MULTILINE | re.DOTALL)
 parsed = parser.search(data).groups()[0]
+parsed = parsed.rstrip(' \n],') + ']'
 links = json.loads(parsed.replace("'", '"'))
+
 
 
 kml = StringIO.StringIO()
@@ -47,6 +49,7 @@ nodes = sorted(nodes, cmp=lambda a, b: cmp(a['name'], b['name']))
 
 for n in nodes:
   n['wname'] = n['name'].decode('utf-8')
+  n['wurl'] = n['url'].decode('utf-8')
   kml.write("""
   <Placemark id="%(pk)s">
     <name>%(wname)s</name>
